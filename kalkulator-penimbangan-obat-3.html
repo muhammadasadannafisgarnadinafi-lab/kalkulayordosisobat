@@ -1,0 +1,1914 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neraca — Kalkulator Penimbangan Obat</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500;600&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0E1512;
+    --surface: #161F1A;
+    --surface-raised: #1E2A23;
+    --brass: #C9A227;
+    --brass-dim: #8C7220;
+    --sage: #7FA88F;
+    --sage-dim: #4E6E5C;
+    --ink: #EDEAE0;
+    --ink-dim: #9AA69D;
+    --warn: #C1603F;
+    --line: rgba(237,234,224,0.10);
+    --line-strong: rgba(237,234,224,0.20);
+  }
+
+  *{ box-sizing: border-box; }
+
+  html, body{
+    margin:0;
+    padding:0;
+    height:100%;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Work Sans', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body{
+    position: relative;
+    min-height:100vh;
+    overflow-x: hidden;
+    display:flex;
+    justify-content:center;
+    padding: 32px 16px 64px;
+  }
+
+  .bg-glow{
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    pointer-events: none;
+  }
+  .bg-glow span{
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(64px);
+    opacity: 0.5;
+    mix-blend-mode: screen;
+    will-change: transform, opacity;
+  }
+  .bg-glow span:nth-child(1){
+    width: 320px; height: 320px;
+    left: -70px; bottom: -140px;
+    background: radial-gradient(circle, #4C6EF5, transparent 70%);
+    animation: drift-a 17s ease-in-out infinite alternate;
+  }
+  .bg-glow span:nth-child(2){
+    width: 300px; height: 300px;
+    right: -90px; bottom: -100px;
+    background: radial-gradient(circle, #9B5CF6, transparent 70%);
+    animation: drift-b 21s ease-in-out infinite alternate;
+    animation-delay: -6s;
+  }
+  .bg-glow span:nth-child(3){
+    width: 260px; height: 260px;
+    left: 32%; bottom: -170px;
+    background: radial-gradient(circle, #22D3C8, transparent 70%);
+    animation: drift-c 19s ease-in-out infinite alternate;
+    animation-delay: -11s;
+  }
+  .bg-glow span:nth-child(4){
+    width: 200px; height: 200px;
+    right: 20%; top: -60px;
+    background: radial-gradient(circle, #C9A227, transparent 70%);
+    opacity: 0.22;
+    animation: drift-a 24s ease-in-out infinite alternate;
+    animation-delay: -3s;
+  }
+
+  @keyframes drift-a{
+    0%   { transform: translate(0,0) scale(1); }
+    50%  { transform: translate(30px,-24px) scale(1.18); }
+    100% { transform: translate(-18px,14px) scale(0.92); }
+  }
+  @keyframes drift-b{
+    0%   { transform: translate(0,0) scale(1); }
+    50%  { transform: translate(-26px,-18px) scale(0.9); }
+    100% { transform: translate(16px,22px) scale(1.2); }
+  }
+  @keyframes drift-c{
+    0%   { transform: translate(0,0) scale(1); }
+    50%  { transform: translate(18px,-28px) scale(1.1); }
+    100% { transform: translate(-24px,6px) scale(0.95); }
+  }
+
+  .page{
+    position: relative;
+    z-index: 1;
+    width:100%;
+    max-width: 480px;
+    opacity: 0;
+    transform: translateY(14px);
+    animation: pageIn 1s cubic-bezier(0.16, 1, 0.3, 1) 1.5s forwards;
+  }
+
+  @keyframes pageIn{
+    to{
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  header.top{
+    margin-bottom: 22px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--line);
+    text-align: center;
+  }
+
+  .eyebrow{
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--sage);
+    margin: 0 0 8px;
+  }
+
+  h1{
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-optical-sizing: auto;
+    font-size: clamp(38px, 11vw, 50px);
+    line-height: 1.05;
+    letter-spacing: -0.01em;
+    margin: 0 0 10px;
+    color: var(--ink);
+    background: linear-gradient(135deg, var(--ink) 40%, var(--sage) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .sub{
+    font-size: 13.5px;
+    color: var(--ink-dim);
+    line-height: 1.5;
+    margin: 0 auto;
+    max-width: 40ch;
+  }
+
+  .card{
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+
+  .card-label{
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-style: italic;
+    font-size: 21px;
+    letter-spacing: 0.01em;
+    color: var(--ink);
+    margin: 0 0 20px;
+    padding-bottom: 12px;
+    display:flex;
+    align-items:center;
+    justify-content: center;
+    gap:10px;
+    position: relative;
+    text-align: center;
+  }
+
+  .card-label::before,
+  .card-label::after{
+    content: '✧';
+    font-style: normal;
+    font-size: 15px;
+    color: var(--brass);
+    flex-shrink: 0;
+  }
+
+  .field{
+    margin-bottom: 16px;
+  }
+  .field:last-child{ margin-bottom: 0; }
+
+  .field label{
+    display:flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 13px;
+    color: var(--ink);
+    margin-bottom: 7px;
+  }
+
+  .field label .unit{
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-dim);
+  }
+
+  .field input[type="number"]{
+    width:100%;
+    background: var(--surface-raised);
+    border: 1px solid var(--line-strong);
+    border-radius: 8px;
+    padding: 11px 12px;
+    color: var(--ink);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 16px;
+    font-variant-numeric: tabular-nums;
+    outline: none;
+    transition: border-color 0.15s ease, background 0.15s ease;
+    -moz-appearance: textfield;
+  }
+  .field input[type="number"]::-webkit-outer-spin-button,
+  .field input[type="number"]::-webkit-inner-spin-button{
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  .field input[type="number"]:focus{
+    border-color: var(--sage);
+    background: #24322A;
+  }
+  .field input[type="number"]:focus-visible{
+    outline: 2px solid var(--sage);
+    outline-offset: 1px;
+  }
+
+  .field .hint{
+    font-size: 11.5px;
+    color: var(--ink-dim);
+    margin-top: 6px;
+    line-height: 1.4;
+  }
+
+  .row2{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  details.adv{
+    margin-top: 4px;
+  }
+  details.adv summary{
+    list-style: none;
+    cursor: pointer;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    color: var(--sage);
+    letter-spacing: 0.03em;
+    display:flex;
+    align-items:center;
+    gap:6px;
+    padding: 4px 0;
+  }
+  details.adv summary::-webkit-details-marker{ display:none; }
+  details.adv summary::before{
+    content:'▸';
+    display:inline-block;
+    transition: transform 0.15s ease;
+    color: var(--brass);
+  }
+  details.adv[open] summary::before{ transform: rotate(90deg); }
+  details.adv .adv-body{ padding-top: 14px; }
+
+  /* --- gauge --- */
+  .gauge-wrap{
+    margin: 4px 0 18px;
+  }
+  .gauge-labels{
+    display:flex;
+    justify-content: space-between;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10.5px;
+    color: var(--ink-dim);
+    margin-bottom: 8px;
+  }
+  .gauge-track{
+    position:relative;
+    height: 34px;
+  }
+  .gauge-track svg{ width:100%; height:100%; display:block; overflow:visible; }
+  .gauge-status{
+    margin-top: 10px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    letter-spacing: 0.02em;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .gauge-status .dot{
+    width:7px; height:7px; border-radius:50%;
+    background: var(--sage);
+    box-shadow: 0 0 8px var(--sage);
+    flex-shrink:0;
+  }
+  .gauge-status.warn .dot{
+    background: var(--warn);
+    box-shadow: 0 0 8px var(--warn);
+  }
+  .gauge-status.ok{ color: var(--sage); }
+  .gauge-status.warn{ color: var(--warn); }
+
+  /* --- readout --- */
+  .readout{
+    background: #0B100D;
+    border: 1px solid var(--line-strong);
+    border-radius: 10px;
+    padding: 18px 16px;
+    text-align: right;
+    margin-bottom: 4px;
+    position: relative;
+  }
+  .readout .r-label{
+    position:absolute;
+    top: 10px;
+    left: 14px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+  }
+  .readout .r-value{
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 34px;
+    font-weight: 500;
+    color: var(--sage);
+    text-shadow: 0 0 18px rgba(127,168,143,0.35);
+    line-height: 1.2;
+    font-variant-numeric: tabular-nums;
+  }
+  .readout .r-value .r-unit{
+    font-size: 16px;
+    color: var(--ink-dim);
+    text-shadow:none;
+    margin-left: 4px;
+  }
+
+  .readout.warn{ border-color: var(--warn); }
+  .readout.warn .r-value{
+    color: var(--warn);
+    text-shadow: 0 0 18px rgba(193,96,63,0.35);
+  }
+
+  .dm-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    font-size: 13px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .dm-row:last-child{ border-bottom:none; }
+  .dm-row .dm-pct{
+    font-family:'IBM Plex Mono', monospace;
+    font-variant-numeric: tabular-nums;
+    color: var(--sage);
+  }
+  .dm-row.over .dm-pct{ color: var(--warn); font-weight:600; }
+
+  .steps{
+    margin-top: 16px;
+    border-top: 1px dashed var(--line);
+    padding-top: 14px;
+  }
+  .step{
+    display:flex;
+    gap: 12px;
+    font-size: 13px;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--line);
+    align-items: baseline;
+  }
+  .step:last-child{ border-bottom:none; }
+  .step .n{
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--brass);
+    flex-shrink:0;
+    width: 16px;
+  }
+  .step .t{
+    color: var(--ink-dim);
+    flex: 1;
+  }
+  .step .v{
+    font-family: 'IBM Plex Mono', monospace;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .empty-note{
+    font-size: 13px;
+    color: var(--ink-dim);
+    text-align:center;
+    padding: 10px 4px 2px;
+    line-height:1.5;
+  }
+
+  footer.foot{
+    margin-top: 22px;
+    font-size: 11.5px;
+    color: var(--ink-dim);
+    line-height: 1.6;
+    text-align:center;
+    padding: 0 8px;
+  }
+  footer.foot b{ color: var(--ink); font-weight: 500; }
+
+  .field select{
+    width:100%;
+    background: var(--surface-raised);
+    border: 1px solid var(--line-strong);
+    border-radius: 8px;
+    padding: 11px 12px;
+    color: var(--ink);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 14px;
+    outline: none;
+    appearance: none;
+    background-image: linear-gradient(45deg, transparent 50%, var(--ink-dim) 50%), linear-gradient(135deg, var(--ink-dim) 50%, transparent 50%);
+    background-position: calc(100% - 16px) center, calc(100% - 11px) center;
+    background-size: 5px 5px, 5px 5px;
+    background-repeat: no-repeat;
+  }
+  .field select:focus{ border-color: var(--sage); }
+
+  .conv-row{
+    display:grid;
+    grid-template-columns: 1fr 92px;
+    gap: 10px;
+  }
+
+  .splash{
+    position: fixed;
+    inset: 0;
+    z-index: 2;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap: 12px;
+    text-align:center;
+    padding: 0 28px;
+    pointer-events: none;
+    animation: splashInOut 2s ease forwards;
+  }
+  .splash .spark{
+    width: 190px;
+    height: 190px;
+    display: block;
+  }
+  .splash h2{
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-size: 21px;
+    color: var(--ink);
+    margin: 0;
+  }
+  .splash p{
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+    margin: 0;
+  }
+  @keyframes splashInOut{
+    0%   { opacity: 0; transform: translateY(8px); }
+    14%  { opacity: 1; transform: translateY(0); }
+    55%  { opacity: 1; transform: translateY(0); }
+    100% { opacity: 0; transform: translateY(-10px); }
+  }
+
+  .seg{
+    display:flex;
+    gap: 6px;
+    background: var(--surface-raised);
+    border: 1px solid var(--line-strong);
+    border-radius: 10px;
+    padding: 4px;
+    margin-bottom: 16px;
+  }
+  .seg-btn{
+    flex: 1;
+    border: none;
+    background: transparent;
+    color: var(--ink-dim);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    letter-spacing: 0.03em;
+    padding: 8px 4px;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .seg-btn.active{
+    background: rgba(201,162,39,0.16);
+    color: var(--brass);
+  }
+  .seg-btn:focus-visible{
+    outline: 2px solid var(--sage);
+    outline-offset: 1px;
+  }
+
+  .unit-graph{
+    display:flex;
+    flex-direction:column;
+    gap: 11px;
+    margin-top: 18px;
+  }
+  .unit-row{
+    display:grid;
+    grid-template-columns: 92px 1fr 78px;
+    align-items:center;
+    gap: 10px;
+  }
+  .unit-row .u-name{
+    font-size: 12px;
+    color: var(--ink-dim);
+    line-height: 1.2;
+    transition: color 0.15s ease;
+  }
+  .unit-row.active .u-name{
+    color: var(--brass);
+    font-weight: 600;
+  }
+  .unit-row .u-track{
+    height: 9px;
+    background: var(--surface-raised);
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    overflow: hidden;
+  }
+  .unit-row .u-bar{
+    height: 100%;
+    border-radius: 5px 0 0 5px;
+    background: linear-gradient(90deg, var(--sage-dim), var(--sage));
+    transition: width 0.3s ease, background 0.15s ease;
+  }
+  .unit-row.active .u-bar{
+    background: linear-gradient(90deg, var(--brass-dim), var(--brass));
+  }
+  .unit-row .u-value{
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    color: var(--ink);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    transition: color 0.15s ease;
+  }
+  .unit-row.active .u-value{ color: var(--sage); }
+
+  .btn-reset{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    margin-top:16px;
+    background: var(--surface-raised);
+    border: 1px solid var(--line-strong);
+    color: var(--ink-dim);
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    letter-spacing: 0.04em;
+    padding: 9px 16px;
+    border-radius: 999px;
+    cursor:pointer;
+    transition: border-color .15s ease, color .15s ease;
+  }
+  .btn-reset:hover{ border-color: var(--warn); color: var(--warn); }
+  .btn-reset:focus-visible{ outline: 2px solid var(--sage); outline-offset: 2px; }
+
+  .field.has-error input,
+  .field.has-error select{ border-color: var(--warn); }
+  .field-error{
+    font-size: 11.5px;
+    color: var(--warn);
+    margin-top: 6px;
+    line-height:1.4;
+  }
+  .field-error[hidden]{ display:none; }
+
+  .field input[type="text"]{
+    width:100%;
+    background: var(--surface-raised);
+    border: 1px solid var(--line-strong);
+    border-radius: 8px;
+    padding: 11px 12px;
+    color: var(--ink);
+    font-family: 'Work Sans', sans-serif;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+  .field input[type="text"]:focus{ border-color: var(--sage); background: #24322A; }
+
+  .obat-row{
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px;
+    margin-bottom: 12px;
+  }
+  .obat-row .obat-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom: 12px;
+  }
+  .obat-row .obat-head span{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 10.5px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color: var(--brass);
+  }
+  .obat-remove{
+    background:none;
+    border:none;
+    color: var(--ink-dim);
+    cursor:pointer;
+    font-size: 15px;
+    line-height:1;
+    padding:3px 7px;
+    border-radius:6px;
+    transition: color .15s ease, background .15s ease;
+  }
+  .obat-remove:hover{ color: var(--warn); background: rgba(193,96,63,0.12); }
+
+  .btn-add{
+    width:100%;
+    background: transparent;
+    border: 1px dashed var(--line-strong);
+    color: var(--sage);
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 12px;
+    letter-spacing:0.03em;
+    padding: 11px;
+    border-radius: 10px;
+    cursor:pointer;
+    transition: border-color .15s ease, background .15s ease;
+  }
+  .btn-add:hover{ border-color: var(--sage); background: rgba(127,168,143,0.08); }
+
+  .obat-result{
+    border-top: 1px dashed var(--line);
+    padding-top: 16px;
+    margin-top: 16px;
+  }
+  .obat-result:first-child{ border-top:none; padding-top:0; margin-top:0; }
+  .obat-result .or-name{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color: var(--ink-dim);
+    margin-bottom: 10px;
+  }
+
+  .status-bar{
+    display:grid;
+    grid-template-columns: 1fr 96px;
+    align-items:center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .status-bar .sb-track{
+    height:8px;
+    background: var(--surface-raised);
+    border:1px solid var(--line);
+    border-radius:5px;
+    overflow:hidden;
+  }
+  .status-bar .sb-fill{
+    height:100%;
+    border-radius:5px 0 0 5px;
+    background: linear-gradient(90deg, var(--sage-dim), var(--sage));
+    transition: width .3s ease, background .15s ease;
+  }
+  .status-bar.warn .sb-fill{ background: linear-gradient(90deg, #8c4530, var(--warn)); }
+  .status-bar .sb-label{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 10.5px;
+    text-align:right;
+    color: var(--sage);
+  }
+  .status-bar.warn .sb-label{ color: var(--warn); }
+
+  .action-row{
+    display:flex;
+    gap:10px;
+    margin-top: 18px;
+  }
+  .btn-action{
+    flex:1;
+    background: var(--surface-raised);
+    border:1px solid var(--line-strong);
+    color: var(--ink);
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    letter-spacing:0.03em;
+    padding:10px;
+    border-radius:9px;
+    cursor:pointer;
+    transition: border-color .15s ease, background .15s ease, color .15s ease;
+  }
+  .btn-action:hover{ border-color: var(--brass); }
+  .btn-action.copied{ border-color: var(--sage); color: var(--sage); }
+
+  .hist-item{
+    border-bottom: 1px solid var(--line);
+    padding: 10px 0;
+    font-size: 12.5px;
+    color: var(--ink-dim);
+    line-height:1.5;
+  }
+  .hist-item:last-child{ border-bottom:none; }
+  .hist-item .hi-time{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--brass);
+    display:block;
+    margin-bottom:3px;
+  }
+  .hist-item b{ color: var(--ink); font-weight:500; }
+
+  #printLabel{ display:none; }
+
+  @media print{
+    body *{ visibility: hidden; }
+    #printLabel, #printLabel *{ visibility: visible; }
+    #printLabel{
+      display:block;
+      position: absolute;
+      inset: 0;
+      background: #fff;
+      color: #000;
+      padding: 24px;
+      font-family: 'Work Sans', sans-serif;
+    }
+    #printLabel h3{
+      font-family: 'Fraunces', serif;
+      font-size: 20px;
+      margin: 0 0 4px;
+    }
+    #printLabel .pl-sub{
+      font-size: 11px;
+      color: #555;
+      margin-bottom: 14px;
+    }
+    #printLabel .pl-item{
+      border: 1px solid #999;
+      border-radius: 6px;
+      padding: 10px 12px;
+      margin-bottom: 10px;
+      font-size: 13px;
+    }
+    #printLabel .pl-item b{ display:block; margin-bottom: 4px; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ transition: none !important; }
+    .bg-glow span{ animation: none !important; }
+    .page{ animation: none !important; opacity: 1; transform: none; }
+    .splash{ display: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="bg-glow">
+  <span></span>
+  <span></span>
+  <span></span>
+  <span></span>
+</div>
+
+<div class="splash">
+  <svg class="spark" viewBox="0 0 240 240" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <defs>
+      <linearGradient id="ringGrad" x1="0" y1="0" x2="240" y2="240" gradientUnits="userSpaceOnUse">
+        <stop offset="0%" stop-color="#C9A227"/>
+        <stop offset="100%" stop-color="#7FA88F"/>
+      </linearGradient>
+      <path id="topArc" d="M32,120 A88,88 0 0 1 208,120" fill="none"/>
+      <path id="leaf" d="M0,0 C3,-3 3,-9 0,-13 C-3,-9 -3,-3 0,0 Z" fill="#7FA88F" opacity="0.85"/>
+    </defs>
+
+    <circle cx="120" cy="120" r="114" fill="rgba(255,255,255,0.015)" stroke="url(#ringGrad)" stroke-width="1.5"/>
+    <circle cx="120" cy="120" r="105" fill="none" stroke="url(#ringGrad)" stroke-width="1" opacity="0.5"/>
+
+    <text font-family="'IBM Plex Mono', monospace" font-size="9" letter-spacing="3" fill="#C9A227">
+      <textPath href="#topArc" startOffset="50%" text-anchor="middle">KALKULATOR &#183; TIMBANGAN &#183; OBAT</textPath>
+    </text>
+
+    <g transform="translate(77,55) scale(1.8)">
+      <path d="M10 24c0 8.2 6.3 15 14 15s14-6.8 14-15" stroke="url(#ringGrad)" stroke-width="2.4" stroke-linecap="round"/>
+      <ellipse cx="24" cy="24" rx="16" ry="4.2" stroke="url(#ringGrad)" stroke-width="2.4"/>
+      <line x1="32" y1="8" x2="21" y2="22" stroke="url(#ringGrad)" stroke-width="2.4" stroke-linecap="round"/>
+      <circle cx="33.5" cy="6.5" r="3.2" fill="url(#ringGrad)"/>
+    </g>
+
+    <g transform="translate(78,160)">
+      <use href="#leaf" transform="rotate(15)"/>
+      <use href="#leaf" transform="translate(-9,3) rotate(35)"/>
+      <use href="#leaf" transform="translate(-16,10) rotate(55)"/>
+    </g>
+    <g transform="translate(162,160) scale(-1,1)">
+      <use href="#leaf" transform="rotate(15)"/>
+      <use href="#leaf" transform="translate(-9,3) rotate(35)"/>
+      <use href="#leaf" transform="translate(-16,10) rotate(55)"/>
+    </g>
+
+    <text x="120" y="164" text-anchor="middle" font-family="'Fraunces', serif" font-weight="600" font-size="21" letter-spacing="2" fill="url(#ringGrad)">NERACA</text>
+    <line x1="97" y1="172" x2="143" y2="172" stroke="#7FA88F" stroke-width="1" opacity="0.5"/>
+    <text x="120" y="185" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="8" letter-spacing="2" fill="#9AA69D">BERAT &#183; PANJANG &#183; VOLUME</text>
+  </svg>
+</div>
+
+<div class="page">
+
+  <header class="top">
+    <p class="eyebrow">Neraca · Alat Bantu Racikan</p>
+    <h1>Kalkulator Penimbangan Obat</h1>
+    <p class="sub">Hitung berat total yang perlu ditimbang untuk racikan, plus konverter tangga satuan berat, panjang, dan volume.</p>
+    <button type="button" class="btn-reset" id="resetBtn">↺ Reset semua isian</button>
+  </header>
+
+  <div class="card">
+    <p class="card-label">Konversi tangga satuan</p>
+
+    <div class="seg" id="unitSeg">
+      <button type="button" class="seg-btn active" data-cat="berat">Berat</button>
+      <button type="button" class="seg-btn" data-cat="panjang">Panjang</button>
+      <button type="button" class="seg-btn" data-cat="volume">Volume</button>
+    </div>
+
+    <div class="field">
+      <label for="convVal">Nilai yang dikonversi</label>
+      <div class="conv-row">
+        <input type="number" id="convVal" inputmode="decimal" placeholder="misal 250" step="any">
+        <select id="convUnit"></select>
+      </div>
+    </div>
+
+    <div class="unit-graph" id="stair"></div>
+    <p class="hint" id="stairHint" style="margin-top:4px;">Panjang batang menunjukkan skala tiap satuan. Antar tingkat baku: naik ÷10, turun ×10. Khusus mikrogram (mcg) = mg ÷ 1000, satuan tambahan yang sering dipakai buat obat dosis sangat kecil.</p>
+  </div>
+
+  <div class="card">
+    <p class="card-label">Data resep</p>
+
+    <div class="field" id="fieldJumlah">
+      <label for="jumlah">Jumlah bungkus/kapsul <span class="unit">unit</span></label>
+      <input type="number" id="jumlah" inputmode="numeric" placeholder="misal 10" min="1" step="1">
+      <p class="field-error" id="errJumlah" hidden></p>
+    </div>
+
+    <div id="obatList"></div>
+
+    <button type="button" class="btn-add" id="addObatBtn">+ Tambah obat</button>
+
+    <details class="adv">
+      <summary>Pengaturan timbangan &amp; pengenceran</summary>
+      <div class="adv-body">
+        <div class="field" id="fieldPengisi">
+          <label for="pengisi">Nama bahan pengisi</label>
+          <input type="text" id="pengisi" placeholder="misal Laktosum" value="Laktosum">
+        </div>
+        <div class="row2">
+          <div class="field" id="fieldBatas">
+            <label for="batas">Batas minimum <span class="unit">mg</span></label>
+            <input type="number" id="batas" inputmode="decimal" value="50" min="1" step="any">
+            <p class="field-error" id="errBatas" hidden></p>
+          </div>
+          <div class="field" id="fieldTarget">
+            <label for="target">Target campuran <span class="unit">mg</span></label>
+            <input type="number" id="target" inputmode="decimal" value="500" min="1" step="any">
+            <p class="field-error" id="errTarget" hidden></p>
+          </div>
+        </div>
+        <p class="hint">Batas minimum = berat terkecil yang masih akurat ditimbang neraca kamu. Target campuran = total berat campuran obat + pengisi saat pengenceran diperlukan.</p>
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <p class="card-label">Dosis anak</p>
+    <p class="hint" style="margin-bottom:16px;">Konversi dosis dewasa jadi dosis anak sebelum ditimbang, pakai rumus baku farmasi.</p>
+
+    <div class="seg" id="pedSeg">
+      <button type="button" class="seg-btn active" data-rule="young">Young</button>
+      <button type="button" class="seg-btn" data-rule="clark">Clark</button>
+      <button type="button" class="seg-btn" data-rule="fried">Fried</button>
+    </div>
+
+    <div class="field" id="fieldPedDosis">
+      <label for="pedDosis">Dosis dewasa <span class="unit">mg</span></label>
+      <input type="number" id="pedDosis" inputmode="decimal" placeholder="misal 500" min="0" step="any">
+    </div>
+
+    <div class="field" id="fieldPedVal">
+      <label for="pedVal" id="pedValLabel">Usia anak <span class="unit">tahun</span></label>
+      <input type="number" id="pedVal" inputmode="decimal" placeholder="misal 6" min="0" step="any">
+    </div>
+    <p class="field-error" id="errPed" hidden></p>
+
+    <div id="pedResult" aria-live="polite"></div>
+  </div>
+
+  <div class="card">
+    <p class="card-label">Dosis per berat badan</p>
+    <p class="hint" style="margin-bottom:16px;">Rumus: Dosis per kgBB × Berat badan pasien — dipakai buat dewasa maupun anak (misal antibiotik "25 mg/kgBB").</p>
+
+    <div class="row2">
+      <div class="field" id="fieldMgkg">
+        <label for="mgkg">Dosis per kgBB <span class="unit">mg/kg</span></label>
+        <input type="number" id="mgkg" inputmode="decimal" placeholder="misal 25" min="0" step="any">
+      </div>
+      <div class="field" id="fieldBbPasien">
+        <label for="bbPasien">Berat badan pasien <span class="unit">kg</span></label>
+        <input type="number" id="bbPasien" inputmode="decimal" placeholder="misal 18" min="0" step="any">
+      </div>
+    </div>
+    <p class="field-error" id="errMgkg" hidden></p>
+
+    <div id="mgkgResult" aria-live="polite"></div>
+  </div>
+
+  <div class="card">
+    <p class="card-label">Cek dosis maksimum</p>
+    <p class="hint" style="margin-bottom:16px;">Bandingkan dosis yang mau diberikan terhadap Dosis Maksimum (DM) dari Farmakope — kalau lebih dari 100%, jangan diberikan, konsultasikan ke dokter/apoteker penanggung jawab.</p>
+
+    <div class="row2">
+      <div class="field" id="fieldDmSekali">
+        <label for="dmSekali">DM sekali pakai <span class="unit">mg</span></label>
+        <input type="number" id="dmSekali" inputmode="decimal" placeholder="misal 1000" min="0" step="any">
+      </div>
+      <div class="field" id="fieldDmSehari">
+        <label for="dmSehari">DM sehari <span class="unit">mg</span></label>
+        <input type="number" id="dmSehari" inputmode="decimal" placeholder="misal 4000" min="0" step="any">
+      </div>
+    </div>
+    <div class="row2">
+      <div class="field" id="fieldDosisSekali">
+        <label for="dosisSekali">Dosis diberikan sekali <span class="unit">mg</span></label>
+        <input type="number" id="dosisSekali" inputmode="decimal" placeholder="misal 500" min="0" step="any">
+      </div>
+      <div class="field" id="fieldFrekuensi">
+        <label for="frekuensi">Frekuensi <span class="unit">kali/hari</span></label>
+        <input type="number" id="frekuensi" inputmode="numeric" placeholder="misal 3" min="0" step="1">
+      </div>
+    </div>
+    <p class="field-error" id="errDm" hidden></p>
+
+    <div id="dmResult" aria-live="polite"></div>
+  </div>
+
+  <div class="card">
+    <p class="card-label">Pengenceran larutan</p>
+    <p class="hint" style="margin-bottom:16px;">Rumus baku: V1 × C1 = V2 × C2 — dipakai buat encerin larutan pekat jadi konsentrasi yang lebih rendah.</p>
+
+    <div class="row2">
+      <div class="field" id="fieldC1">
+        <label for="c1">Konsentrasi awal <span class="unit">%</span></label>
+        <input type="number" id="c1" inputmode="decimal" placeholder="misal 96" min="0" step="any">
+      </div>
+      <div class="field" id="fieldC2">
+        <label for="c2">Konsentrasi target <span class="unit">%</span></label>
+        <input type="number" id="c2" inputmode="decimal" placeholder="misal 70" min="0" step="any">
+      </div>
+    </div>
+    <div class="field" id="fieldV2">
+      <label for="v2">Volume larutan target dibutuhkan <span class="unit">ml</span></label>
+      <input type="number" id="v2" inputmode="decimal" placeholder="misal 100" min="0" step="any">
+    </div>
+    <p class="field-error" id="errLarutan" hidden></p>
+
+    <div id="larutanResult" aria-live="polite"></div>
+  </div>
+
+  <div class="card">
+    <p class="card-label">Kadar persen sediaan</p>
+    <p class="hint" style="margin-bottom:16px;">Hitung berapa zat aktif yang dibutuhkan buat bikin sediaan dengan kadar persen tertentu.</p>
+
+    <div class="seg" id="kadarSeg">
+      <button type="button" class="seg-btn active" data-kadar="bb">b/b</button>
+      <button type="button" class="seg-btn" data-kadar="bv">b/v</button>
+      <button type="button" class="seg-btn" data-kadar="vv">v/v</button>
+    </div>
+
+    <div class="field" id="fieldKadarPersen">
+      <label for="kadarPersen">Kadar <span class="unit">%</span></label>
+      <input type="number" id="kadarPersen" inputmode="decimal" placeholder="misal 2" min="0" step="any">
+    </div>
+    <div class="field" id="fieldKadarTotal">
+      <label for="kadarTotal" id="kadarTotalLabel">Total sediaan <span class="unit">g</span></label>
+      <input type="number" id="kadarTotal" inputmode="decimal" placeholder="misal 20" min="0" step="any">
+    </div>
+    <p class="field-error" id="errKadar" hidden></p>
+
+    <div id="kadarResult" aria-live="polite"></div>
+  </div>
+
+  <div class="card" id="resultCard">
+    <p class="card-label" id="resultLabel">Hasil penimbangan</p>
+    <div id="resultBody" aria-live="polite">
+      <p class="empty-note">Hasil penimbangan akan muncul di sini setelah dosis dan jumlah diisi.</p>
+    </div>
+    <div class="action-row">
+      <button type="button" class="btn-action" id="copyBtn">⧉ Salin hasil</button>
+      <button type="button" class="btn-action" id="saveHistBtn">📌 Simpan</button>
+      <button type="button" class="btn-action" id="printBtn">🖨 Cetak</button>
+    </div>
+  </div>
+
+  <div class="card" id="histCard" hidden>
+    <p class="card-label">Riwayat perhitungan</p>
+    <div id="histBody"></div>
+    <button type="button" class="btn-add" id="clearHistBtn" style="margin-top:12px;">Hapus riwayat</button>
+  </div>
+
+  <footer class="foot">
+    <b>Alat bantu hitung</b>, bukan pengganti verifikasi resep. Cocokkan hasil dengan protokol racikan tempat kamu praktik / belajar sebelum menimbang sungguhan.
+  </footer>
+
+</div>
+
+<div id="printLabel"></div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  const convValEl = $('convVal'), convUnitEl = $('convUnit'), stairEl = $('stair'), unitSegEl = $('unitSeg');
+
+  function fmt(n){
+    if (!isFinite(n)) return '—';
+    const r = Math.round(n * 1000) / 1000;
+    return r.toLocaleString('id-ID', { maximumFractionDigits: 3 });
+  }
+
+  // --- tangga satuan: berat (gram), panjang (meter), volume (liter) ---
+  // urutan dari terbesar ke terkecil; tiap naik satu tingkat dibagi 10, tiap turun dikali 10 — sesuai deret satuan metrik baku
+  const UNIT_SETS = {
+    berat: { units: [
+      { abbr: 'kg',  name: 'Kilogram',  factor: 1000 },
+      { abbr: 'hg',  name: 'Hektogram', factor: 100 },
+      { abbr: 'dag', name: 'Dekagram',  factor: 10 },
+      { abbr: 'g',   name: 'Gram',      factor: 1 },
+      { abbr: 'dg',  name: 'Desigram',  factor: 0.1 },
+      { abbr: 'cg',  name: 'Sentigram', factor: 0.01 },
+      { abbr: 'mg',  name: 'Miligram',  factor: 0.001 },
+      { abbr: 'mcg', name: 'Mikrogram', factor: 0.000001 }
+    ]},
+    panjang: { units: [
+      { abbr: 'km',  name: 'Kilometer',  factor: 1000 },
+      { abbr: 'hm',  name: 'Hektometer', factor: 100 },
+      { abbr: 'dam', name: 'Dekameter',  factor: 10 },
+      { abbr: 'm',   name: 'Meter',      factor: 1 },
+      { abbr: 'dm',  name: 'Desimeter',  factor: 0.1 },
+      { abbr: 'cm',  name: 'Sentimeter', factor: 0.01 },
+      { abbr: 'mm',  name: 'Milimeter',  factor: 0.001 }
+    ]},
+    volume: { units: [
+      { abbr: 'kl',  name: 'Kiloliter',  factor: 1000 },
+      { abbr: 'hl',  name: 'Hektoliter', factor: 100 },
+      { abbr: 'dal', name: 'Dekaliter',  factor: 10 },
+      { abbr: 'l',   name: 'Liter',      factor: 1 },
+      { abbr: 'dl',  name: 'Desiliter',  factor: 0.1 },
+      { abbr: 'cl',  name: 'Sentiliter', factor: 0.01 },
+      { abbr: 'ml',  name: 'Mililiter',  factor: 0.001 }
+    ]}
+  };
+
+  let currentCat = 'berat';
+
+  function fmtConv(n){
+    if (!isFinite(n)) return '—';
+    const rounded = Math.round(n * 1e6) / 1e6;
+    return rounded.toLocaleString('id-ID', { maximumFractionDigits: 6 });
+  }
+
+  function factorMapFor(cat){
+    const map = {};
+    UNIT_SETS[cat].units.forEach(u => { map[u.abbr] = u.factor; });
+    return map;
+  }
+
+  // skala batang: log10 dari faktor, dipetakan ke rentang unit terbesar–terkecil dalam kategori itu
+  function barWidthPct(factor, logMin, logMax){
+    const logVal = Math.log10(factor);
+    const span = logMax - logMin || 1;
+    const pct = ((logVal - logMin) / span) * 100;
+    return Math.max(6, Math.min(100, pct));
+  }
+
+  function buildUnitUI(cat){
+    const units = UNIT_SETS[cat].units;
+    const logs = units.map(u => Math.log10(u.factor));
+    const logMax = Math.max(...logs), logMin = Math.min(...logs);
+
+    convUnitEl.innerHTML = units
+      .map((u, i) => `<option value="${u.abbr}"${i === units.length - 1 ? ' selected' : ''}>${u.name}</option>`)
+      .join('');
+
+    stairEl.innerHTML = units
+      .map(u => `
+        <div class="unit-row" data-unit="${u.abbr}">
+          <span class="u-name">${u.name}</span>
+          <span class="u-track"><span class="u-bar" style="width:${barWidthPct(u.factor, logMin, logMax)}%"></span></span>
+          <span class="u-value">—</span>
+        </div>
+      `).join('');
+  }
+
+  function renderStair(){
+    const val = parseFloat(convValEl.value);
+    const unit = convUnitEl.value;
+    const factorMap = factorMapFor(currentCat);
+
+    stairEl.querySelectorAll('.unit-row').forEach(row => {
+      const u = row.dataset.unit;
+      const valSpan = row.querySelector('.u-value');
+      row.classList.toggle('active', u === unit);
+
+      if (!isFinite(val)){
+        valSpan.textContent = '—';
+        return;
+      }
+      const baseValue = val * factorMap[unit];    // dikonversi ke satuan dasar (g/m/l)
+      const converted = baseValue / factorMap[u];  // dari satuan dasar ke satuan tujuan
+      valSpan.textContent = `${fmtConv(converted)} ${u}`;
+    });
+  }
+
+  unitSegEl.querySelectorAll('.seg-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      unitSegEl.querySelectorAll('.seg-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentCat = btn.dataset.cat;
+      buildUnitUI(currentCat);
+      renderStair();
+      saveState();
+    });
+  });
+
+  buildUnitUI(currentCat);
+  [convValEl, convUnitEl].forEach(el => el.addEventListener('input', () => { renderStair(); saveState(); }));
+  renderStair();
+
+  // ============ DATA RESEP: multi-obat ============
+  const jumlahEl = $('jumlah'), batasEl = $('batas'), targetEl = $('target'), pengisiEl = $('pengisi');
+  const obatListEl = $('obatList'), addObatBtn = $('addObatBtn');
+  const resultBody = $('resultBody'), resultLabel = $('resultLabel');
+  const copyBtn = $('copyBtn'), saveHistBtn = $('saveHistBtn');
+  const histCard = $('histCard'), histBody = $('histBody'), clearHistBtn = $('clearHistBtn');
+  const resetBtn = $('resetBtn');
+
+  let obatState = [{ id: 1, nama: '', dosis: '', satuan: 'mg' }];
+  let nextObatId = 2;
+  let historyState = [];
+  let lastResultText = '';
+
+  function fieldError(id, msg){
+    const wrap = document.getElementById('field' + id) || document.querySelector(`[data-err="${id}"]`)?.closest('.field');
+    const err = document.getElementById('err' + id) || document.querySelector(`[data-err="${id}"]`);
+    if (!err) return;
+    if (msg){
+      err.textContent = msg;
+      err.hidden = false;
+      wrap && wrap.classList.add('has-error');
+    } else {
+      err.hidden = true;
+      wrap && wrap.classList.remove('has-error');
+    }
+  }
+
+  function renderObatList(){
+    obatListEl.innerHTML = obatState.map((o, i) => `
+      <div class="obat-row" data-id="${o.id}">
+        <div class="obat-head">
+          <span>Obat ${i + 1}</span>
+          ${obatState.length > 1 ? `<button type="button" class="obat-remove" data-remove="${o.id}" aria-label="Hapus obat ${i + 1}">✕</button>` : ''}
+        </div>
+        <div class="field">
+          <label>Nama obat <span class="unit">opsional</span></label>
+          <input type="text" data-nama="${o.id}" placeholder="misal Paracetamol" value="${o.nama.replace(/"/g, '&quot;')}">
+        </div>
+        <div class="field" id="fieldObat${o.id}">
+          <label>Dosis per bungkus/kapsul</label>
+          <div class="conv-row">
+            <input type="number" data-dosis="${o.id}" inputmode="decimal" placeholder="misal 100" min="0" step="any" value="${o.dosis}">
+            <select data-satuan="${o.id}">
+              <option value="mg"${o.satuan === 'mg' ? ' selected' : ''}>mg</option>
+              <option value="mcg"${o.satuan === 'mcg' ? ' selected' : ''}>mcg</option>
+            </select>
+          </div>
+          <p class="field-error" id="errObat${o.id}" hidden></p>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  obatListEl.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-remove]');
+    if (!btn) return;
+    const id = Number(btn.dataset.remove);
+    obatState = obatState.filter(o => o.id !== id);
+    renderObatList();
+    computeAndRender();
+    saveState();
+  });
+
+  obatListEl.addEventListener('input', (e) => {
+    const namaInput = e.target.closest('[data-nama]');
+    const dosisInput = e.target.closest('[data-dosis]');
+    const satuanInput = e.target.closest('[data-satuan]');
+    if (namaInput){
+      const o = obatState.find(x => x.id === Number(namaInput.dataset.nama));
+      if (o) o.nama = namaInput.value;
+    }
+    if (dosisInput){
+      const o = obatState.find(x => x.id === Number(dosisInput.dataset.dosis));
+      if (o) o.dosis = dosisInput.value;
+    }
+    if (satuanInput){
+      const o = obatState.find(x => x.id === Number(satuanInput.dataset.satuan));
+      if (o) o.satuan = satuanInput.value;
+    }
+    computeAndRender();
+    saveState();
+  });
+
+  addObatBtn.addEventListener('click', () => {
+    obatState.push({ id: nextObatId++, nama: '', dosis: '', satuan: 'mg' });
+    renderObatList();
+    computeAndRender();
+    saveState();
+  });
+
+  function computeSingle(dosis, jumlah, batas, target){
+    const totalObat = dosis * jumlah;
+    if (totalObat >= batas){
+      return { mode: 'langsung', totalObat, dosis, jumlah, batas };
+    }
+    if (target <= batas){
+      return { mode: 'invalid', totalObat, batas, target };
+    }
+    const pengisi = target - batas;
+    const beratDiambil = totalObat * target / batas;
+    const perUnit = beratDiambil / jumlah;
+    return { mode: 'pengenceran', totalObat, batas, target, pengisi, beratDiambil, perUnit, dosis, jumlah };
+  }
+
+  function barPct(total, batas){
+    const scaleMax = Math.max(batas * 1.6, total * 1.25, batas + 20);
+    return Math.max(3, Math.min(100, (total / scaleMax) * 100));
+  }
+
+  function computeAndRender(){
+    // --- validasi jumlah bungkus ---
+    const jumlahRaw = jumlahEl.value;
+    const jumlah = parseFloat(jumlahRaw);
+    let jumlahValid = true;
+    if (jumlahRaw === ''){
+      fieldError('Jumlah', null);
+      jumlahValid = false;
+    } else if (!Number.isFinite(jumlah) || jumlah <= 0){
+      fieldError('Jumlah', 'Jumlah bungkus/kapsul harus angka lebih dari 0.');
+      jumlahValid = false;
+    } else if (!Number.isInteger(jumlah)){
+      fieldError('Jumlah', 'Jumlah bungkus/kapsul harus bilangan bulat (gak bisa pecahan).');
+      jumlahValid = false;
+    } else {
+      fieldError('Jumlah', null);
+    }
+
+    // --- validasi batas & target ---
+    const batasRaw = batasEl.value, targetRaw = targetEl.value;
+    const batas = parseFloat(batasRaw), target = parseFloat(targetRaw);
+    let batasValid = true, targetValid = true;
+    if (!Number.isFinite(batas) || batas <= 0){
+      fieldError('Batas', 'Batas minimum harus lebih dari 0.');
+      batasValid = false;
+    } else {
+      fieldError('Batas', null);
+    }
+    if (!Number.isFinite(target) || target <= 0){
+      fieldError('Target', 'Target campuran harus lebih dari 0.');
+      targetValid = false;
+    } else {
+      fieldError('Target', null);
+    }
+
+    // --- validasi tiap obat ---
+    let anyObatFilled = false;
+    let allObatValid = true;
+    const validEntries = [];
+    obatState.forEach(o => {
+      const raw = o.dosis;
+      if (raw === '' || raw === null){
+        fieldError('Obat' + o.id, null);
+        return;
+      }
+      anyObatFilled = true;
+      const d = parseFloat(raw);
+      if (!Number.isFinite(d) || d <= 0){
+        fieldError('Obat' + o.id, 'Dosis harus angka lebih dari 0.');
+        allObatValid = false;
+        return;
+      }
+      fieldError('Obat' + o.id, null);
+      const dMg = o.satuan === 'mcg' ? d / 1000 : d;
+      validEntries.push({ ...o, dosisNum: dMg, dosisAsli: d, satuanAsli: o.satuan });
+    });
+
+    if (!jumlahValid || !anyObatFilled){
+      resultLabel.textContent = 'Hasil penimbangan';
+      resultBody.innerHTML = '<p class="empty-note">Isi jumlah bungkus/kapsul dan minimal satu dosis obat dulu.</p>';
+      lastResultText = '';
+      return;
+    }
+
+    if (!batasValid || !targetValid || !allObatValid || validEntries.length === 0){
+      resultLabel.textContent = 'Hasil penimbangan';
+      resultBody.innerHTML = '<p class="empty-note">Perbaiki dulu isian yang ditandai merah di atas.</p>';
+      lastResultText = '';
+      return;
+    }
+
+    let textLines = [];
+    const blocks = validEntries.map((o, i) => {
+      const label = o.nama.trim() ? o.nama.trim() : `Obat ${i + 1}`;
+      const r = computeSingle(o.dosisNum, jumlah, batas, target);
+
+      if (r.mode === 'invalid'){
+        textLines.push(`${label}: target campuran harus > batas minimum.`);
+        return `
+          <div class="obat-result">
+            <p class="or-name">${label}</p>
+            <p class="empty-note">Target campuran (${fmt(target)} mg) harus lebih besar dari batas minimum (${fmt(batas)} mg).</p>
+          </div>
+        `;
+      }
+
+      const pct = barPct(r.totalObat, batas);
+      const isWarn = r.mode === 'pengenceran';
+
+      if (r.mode === 'langsung'){
+        textLines.push(`${label}: timbang langsung ${fmt(r.totalObat)} mg (${fmt(o.dosisAsli)} ${o.satuanAsli} × ${fmt(jumlah)}).`);
+        return `
+          <div class="obat-result">
+            <p class="or-name">${label}</p>
+            <div class="status-bar" role="status" aria-label="${label}: ${fmt(r.totalObat)} mg, di atas batas minimum, timbang langsung">
+              <span class="sb-track"><span class="sb-fill" style="width:${pct}%"></span></span>
+              <span class="sb-label">Langsung</span>
+            </div>
+            <div class="readout">
+              <span class="r-label">Berat obat murni</span>
+              <div class="r-value">${fmt(r.totalObat)}<span class="r-unit">mg</span></div>
+            </div>
+            <div class="steps">
+              <div class="step"><span class="n">1</span><span class="t">Dosis × jumlah unit</span><span class="v">${fmt(o.dosisAsli)} ${o.satuanAsli} × ${fmt(jumlah)}</span></div>
+              <div class="step"><span class="n">2</span><span class="t">Total di atas batas timbang</span><span class="v">≥ ${fmt(batas)} mg</span></div>
+            </div>
+          </div>
+        `;
+      }
+
+      const namaPengisi = (pengisiEl.value.trim() || 'Laktosum');
+      textLines.push(`${label}: pengenceran — ambil ${fmt(r.beratDiambil)} mg campuran (setara ${fmt(r.perUnit)} mg/bungkus).`);
+      return `
+        <div class="obat-result">
+          <p class="or-name">${label}</p>
+          <div class="status-bar warn" role="status" aria-label="${label}: ${fmt(r.totalObat)} mg, di bawah batas minimum, perlu pengenceran">
+            <span class="sb-track"><span class="sb-fill" style="width:${pct}%"></span></span>
+            <span class="sb-label">Pengenceran</span>
+          </div>
+          <div class="readout">
+            <span class="r-label">Campuran yang diambil</span>
+            <div class="r-value">${fmt(r.beratDiambil)}<span class="r-unit">mg</span></div>
+          </div>
+          <div class="steps">
+            <div class="step"><span class="n">1</span><span class="t">Timbang obat murni</span><span class="v">${fmt(batas)} mg</span></div>
+            <div class="step"><span class="n">2</span><span class="t">Tambahkan pengisi (${namaPengisi})</span><span class="v">${fmt(r.pengisi)} mg</span></div>
+            <div class="step"><span class="n">3</span><span class="t">Total campuran</span><span class="v">${fmt(target)} mg</span></div>
+            <div class="step"><span class="n">4</span><span class="t">Ambil dari campuran untuk resep ini</span><span class="v">${fmt(r.beratDiambil)} mg</span></div>
+            <div class="step"><span class="n">5</span><span class="t">Setara per bungkus/kapsul</span><span class="v">${fmt(r.perUnit)} mg</span></div>
+          </div>
+        </div>
+      `;
+    });
+
+    resultLabel.textContent = validEntries.length > 1 ? 'Hasil penimbangan (' + validEntries.length + ' obat)' : 'Hasil penimbangan';
+    resultBody.innerHTML = blocks.join('');
+    lastResultText = `Kalkulator Penimbangan Obat — ${jumlah} bungkus/kapsul\n` + textLines.map(l => '• ' + l).join('\n');
+  }
+
+  jumlahEl.addEventListener('input', () => { computeAndRender(); saveState(); });
+  batasEl.addEventListener('input', () => { computeAndRender(); saveState(); });
+  targetEl.addEventListener('input', () => { computeAndRender(); saveState(); });
+  pengisiEl.addEventListener('input', () => { computeAndRender(); saveState(); });
+
+  renderObatList();
+  computeAndRender();
+
+  // ============ SALIN HASIL ============
+  copyBtn.addEventListener('click', async () => {
+    if (!lastResultText){
+      copyBtn.textContent = 'Belum ada hasil';
+      setTimeout(() => { copyBtn.textContent = '⧉ Salin hasil'; }, 1400);
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(lastResultText);
+    } catch (err){
+      const ta = document.createElement('textarea');
+      ta.value = lastResultText;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); } catch (e2) {}
+      document.body.removeChild(ta);
+    }
+    copyBtn.classList.add('copied');
+    copyBtn.textContent = '✓ Tersalin';
+    setTimeout(() => {
+      copyBtn.classList.remove('copied');
+      copyBtn.textContent = '⧉ Salin hasil';
+    }, 1600);
+  });
+
+  // ============ RIWAYAT ============
+  function renderHistory(){
+    if (historyState.length === 0){
+      histCard.hidden = true;
+      return;
+    }
+    histCard.hidden = false;
+    histBody.innerHTML = historyState.map(h => `
+      <div class="hist-item">
+        <span class="hi-time">${h.time}</span>
+        <b>${h.jumlah} bungkus/kapsul</b> — ${h.count} obat disimpan
+      </div>
+    `).join('');
+  }
+
+  saveHistBtn.addEventListener('click', () => {
+    if (!lastResultText){
+      saveHistBtn.textContent = 'Belum ada hasil';
+      setTimeout(() => { saveHistBtn.textContent = '📌 Simpan'; }, 1400);
+      return;
+    }
+    const jumlah = parseFloat(jumlahEl.value) || 0;
+    const count = obatState.filter(o => o.dosis !== '').length;
+    historyState.unshift({
+      time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+      jumlah, count
+    });
+    if (historyState.length > 20) historyState.pop();
+    renderHistory();
+    saveState();
+    saveHistBtn.textContent = '✓ Tersimpan';
+    setTimeout(() => { saveHistBtn.textContent = '📌 Simpan'; }, 1400);
+  });
+
+  clearHistBtn.addEventListener('click', () => {
+    historyState = [];
+    renderHistory();
+    saveState();
+  });
+
+  // ============ CETAK ETIKET ============
+  const printBtn = $('printBtn'), printLabelEl = $('printLabel');
+
+  printBtn.addEventListener('click', () => {
+    if (!lastResultText){
+      printBtn.textContent = 'Belum ada hasil';
+      setTimeout(() => { printBtn.textContent = '🖨 Cetak'; }, 1400);
+      return;
+    }
+    const jumlah = jumlahEl.value;
+    const lines = lastResultText.split('\n').filter(l => l.startsWith('•'));
+    printLabelEl.innerHTML = `
+      <h3>Etiket Racikan</h3>
+      <p class="pl-sub">${jumlah} bungkus/kapsul — dicetak ${new Date().toLocaleString('id-ID')}</p>
+      ${lines.map(l => `<div class="pl-item">${l.replace(/^•\s*/, '')}</div>`).join('')}
+    `;
+    window.print();
+  });
+
+  // ============ RESET ============
+  resetBtn.addEventListener('click', () => {
+    jumlahEl.value = '';
+    batasEl.value = '50';
+    targetEl.value = '500';
+    pengisiEl.value = 'Laktosum';
+    obatState = [{ id: nextObatId++, nama: '', dosis: '', satuan: 'mg' }];
+    renderObatList();
+    ['Jumlah', 'Batas', 'Target'].forEach(k => fieldError(k, null));
+    computeAndRender();
+
+    convValEl.value = '';
+    renderStair();
+
+    c1El.value = ''; c2El.value = ''; v2El.value = '';
+    document.getElementById('errLarutan').hidden = true;
+    renderLarutan();
+
+    pedDosisEl.value = ''; pedValEl.value = '';
+    document.getElementById('errPed').hidden = true;
+    renderPed();
+
+    mgkgEl.value = ''; bbPasienEl.value = '';
+    document.getElementById('errMgkg').hidden = true;
+    renderMgkg();
+
+    dmSekaliEl.value = ''; dmSehariEl.value = ''; dosisSekaliEl.value = ''; frekuensiEl.value = '';
+    document.getElementById('errDm').hidden = true;
+    renderDm();
+
+    kadarPersenEl.value = ''; kadarTotalEl.value = '';
+    document.getElementById('errKadar').hidden = true;
+    renderKadar();
+
+    saveState();
+  });
+
+  // ============ PENGENCERAN LARUTAN (V1C1 = V2C2) ============
+  const c1El = $('c1'), c2El = $('c2'), v2El = $('v2');
+  const larutanResultEl = $('larutanResult'), errLarutanEl = $('errLarutan');
+
+  function renderLarutan(){
+    const c1 = parseFloat(c1El.value);
+    const c2 = parseFloat(c2El.value);
+    const v2 = parseFloat(v2El.value);
+
+    if (c1El.value === '' && c2El.value === '' && v2El.value === ''){
+      errLarutanEl.hidden = true;
+      larutanResultEl.innerHTML = '<p class="empty-note">Isi konsentrasi awal, konsentrasi target, dan volume yang dibutuhkan.</p>';
+      return;
+    }
+
+    if (!Number.isFinite(c1) || !Number.isFinite(c2) || !Number.isFinite(v2) || c1 <= 0 || c2 <= 0 || v2 <= 0){
+      errLarutanEl.textContent = 'Semua kolom harus diisi angka lebih dari 0.';
+      errLarutanEl.hidden = false;
+      larutanResultEl.innerHTML = '';
+      return;
+    }
+    if (c2 >= c1){
+      errLarutanEl.textContent = 'Konsentrasi target harus lebih kecil dari konsentrasi awal (cuma bisa mengencerkan, bukan memekatkan).';
+      errLarutanEl.hidden = false;
+      larutanResultEl.innerHTML = '';
+      return;
+    }
+
+    errLarutanEl.hidden = true;
+    const v1 = (c2 * v2) / c1;
+    const pelarut = v2 - v1;
+
+    larutanResultEl.innerHTML = `
+      <div class="readout">
+        <span class="r-label">Larutan pekat yang diambil</span>
+        <div class="r-value">${fmt(v1)}<span class="r-unit">ml</span></div>
+      </div>
+      <div class="steps">
+        <div class="step"><span class="n">1</span><span class="t">V1 = (C2 × V2) ÷ C1</span><span class="v">${fmt(v1)} ml</span></div>
+        <div class="step"><span class="n">2</span><span class="t">Tambahkan pelarut hingga</span><span class="v">${fmt(pelarut)} ml</span></div>
+        <div class="step"><span class="n">3</span><span class="t">Total volume akhir</span><span class="v">${fmt(v2)} ml</span></div>
+      </div>
+    `;
+  }
+
+  [c1El, c2El, v2El].forEach(el => el.addEventListener('input', () => { renderLarutan(); saveState(); }));
+  renderLarutan();
+
+  // ============ DOSIS ANAK (Young / Clark / Fried) ============
+  const pedSegEl = $('pedSeg'), pedDosisEl = $('pedDosis'), pedValEl = $('pedVal');
+  const pedValLabelEl = $('pedValLabel'), pedResultEl = $('pedResult'), errPedEl = $('errPed');
+  let pedRule = 'young';
+
+  const PED_META = {
+    young: { label: 'Usia anak', unit: 'tahun', placeholder: 'misal 6', desc: 'Young: (usia ÷ (usia + 12)) × dosis dewasa — dipakai buat anak 1–12 tahun.' },
+    clark: { label: 'Berat badan anak', unit: 'kg', placeholder: 'misal 18', desc: 'Clark: (berat badan ÷ 70) × dosis dewasa — asumsi berat dewasa standar 70 kg.' },
+    fried: { label: 'Usia anak', unit: 'bulan', placeholder: 'misal 8', desc: 'Fried: (usia dalam bulan ÷ 150) × dosis dewasa — dipakai buat bayi di bawah 2 tahun.' }
+  };
+
+  function updatePedLabel(){
+    const meta = PED_META[pedRule];
+    pedValLabelEl.innerHTML = `${meta.label} <span class="unit">${meta.unit}</span>`;
+    pedValEl.placeholder = meta.placeholder;
+  }
+
+  pedSegEl.querySelectorAll('.seg-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      pedSegEl.querySelectorAll('.seg-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      pedRule = btn.dataset.rule;
+      updatePedLabel();
+      renderPed();
+      saveState();
+    });
+  });
+
+  function renderPed(){
+    const dosisDewasa = parseFloat(pedDosisEl.value);
+    const val = parseFloat(pedValEl.value);
+
+    if (pedDosisEl.value === '' && pedValEl.value === ''){
+      errPedEl.hidden = true;
+      pedResultEl.innerHTML = `<p class="empty-note">${PED_META[pedRule].desc}</p>`;
+      return;
+    }
+    if (!Number.isFinite(dosisDewasa) || !Number.isFinite(val) || dosisDewasa <= 0 || val <= 0){
+      errPedEl.textContent = 'Dosis dewasa dan nilai anak harus diisi angka lebih dari 0.';
+      errPedEl.hidden = false;
+      pedResultEl.innerHTML = '';
+      return;
+    }
+
+    errPedEl.hidden = true;
+    let dosisAnak, rumusText;
+    if (pedRule === 'young'){
+      dosisAnak = (val / (val + 12)) * dosisDewasa;
+      rumusText = `(${fmt(val)} ÷ (${fmt(val)} + 12)) × ${fmt(dosisDewasa)}`;
+    } else if (pedRule === 'clark'){
+      dosisAnak = (val / 70) * dosisDewasa;
+      rumusText = `(${fmt(val)} ÷ 70) × ${fmt(dosisDewasa)}`;
+    } else {
+      dosisAnak = (val / 150) * dosisDewasa;
+      rumusText = `(${fmt(val)} ÷ 150) × ${fmt(dosisDewasa)}`;
+    }
+
+    pedResultEl.innerHTML = `
+      <div class="readout">
+        <span class="r-label">Dosis anak</span>
+        <div class="r-value">${fmt(dosisAnak)}<span class="r-unit">mg</span></div>
+      </div>
+      <div class="steps">
+        <div class="step"><span class="n">1</span><span class="t">Rumus ${pedRule === 'young' ? 'Young' : pedRule === 'clark' ? 'Clark' : 'Fried'}</span><span class="v">${rumusText}</span></div>
+      </div>
+      <p class="hint" style="margin-top:10px;">Hasil ini bisa langsung dipakai sebagai dosis per bungkus/kapsul di kartu "Data resep" di atas.</p>
+    `;
+  }
+
+  updatePedLabel();
+  [pedDosisEl, pedValEl].forEach(el => el.addEventListener('input', () => { renderPed(); saveState(); }));
+  renderPed();
+
+  // ============ DOSIS PER BERAT BADAN (mg/kgBB) ============
+  const mgkgEl = $('mgkg'), bbPasienEl = $('bbPasien');
+  const mgkgResultEl = $('mgkgResult'), errMgkgEl = $('errMgkg');
+
+  function renderMgkg(){
+    const dosePerKg = parseFloat(mgkgEl.value);
+    const bb = parseFloat(bbPasienEl.value);
+
+    if (mgkgEl.value === '' && bbPasienEl.value === ''){
+      errMgkgEl.hidden = true;
+      mgkgResultEl.innerHTML = '<p class="empty-note">Isi dosis per kgBB (misal dari literatur/Farmakope) dan berat badan pasien.</p>';
+      return;
+    }
+    if (!Number.isFinite(dosePerKg) || !Number.isFinite(bb) || dosePerKg <= 0 || bb <= 0){
+      errMgkgEl.textContent = 'Dosis per kgBB dan berat badan harus diisi angka lebih dari 0.';
+      errMgkgEl.hidden = false;
+      mgkgResultEl.innerHTML = '';
+      return;
+    }
+
+    errMgkgEl.hidden = true;
+    const totalDosis = dosePerKg * bb;
+
+    mgkgResultEl.innerHTML = `
+      <div class="readout">
+        <span class="r-label">Dosis total</span>
+        <div class="r-value">${fmt(totalDosis)}<span class="r-unit">mg</span></div>
+      </div>
+      <div class="steps">
+        <div class="step"><span class="n">1</span><span class="t">Dosis/kgBB × berat badan</span><span class="v">${fmt(dosePerKg)} × ${fmt(bb)} kg</span></div>
+      </div>
+      <p class="hint" style="margin-top:10px;">Hasil ini bisa langsung dipakai sebagai dosis per bungkus/kapsul di kartu "Data resep" di atas.</p>
+    `;
+  }
+
+  [mgkgEl, bbPasienEl].forEach(el => el.addEventListener('input', () => { renderMgkg(); saveState(); }));
+  renderMgkg();
+
+  // ============ CEK % DOSIS MAKSIMUM (DM) ============
+  const dmSekaliEl = $('dmSekali'), dmSehariEl = $('dmSehari');
+  const dosisSekaliEl = $('dosisSekali'), frekuensiEl = $('frekuensi');
+  const dmResultEl = $('dmResult'), errDmEl = $('errDm');
+
+  function renderDm(){
+    const dmSekali = parseFloat(dmSekaliEl.value);
+    const dmSehari = parseFloat(dmSehariEl.value);
+    const dosisSekali = parseFloat(dosisSekaliEl.value);
+    const frekuensi = parseFloat(frekuensiEl.value);
+
+    const allEmpty = [dmSekaliEl, dmSehariEl, dosisSekaliEl, frekuensiEl].every(el => el.value === '');
+    if (allEmpty){
+      errDmEl.hidden = true;
+      dmResultEl.innerHTML = '<p class="empty-note">Isi DM dari Farmakope, dosis yang mau diberikan, dan frekuensi pemberian per hari.</p>';
+      return;
+    }
+    if (![dmSekali, dmSehari, dosisSekali, frekuensi].every(v => Number.isFinite(v) && v > 0)){
+      errDmEl.textContent = 'Semua kolom harus diisi angka lebih dari 0.';
+      errDmEl.hidden = false;
+      dmResultEl.innerHTML = '';
+      return;
+    }
+
+    errDmEl.hidden = true;
+    const dosisSehari = dosisSekali * frekuensi;
+    const pctSekali = (dosisSekali / dmSekali) * 100;
+    const pctSehari = (dosisSehari / dmSehari) * 100;
+    const overSekali = pctSekali > 100;
+    const overSehari = pctSehari > 100;
+    const anyOver = overSekali || overSehari;
+
+    dmResultEl.innerHTML = `
+      <div class="readout${anyOver ? ' warn' : ''}">
+        <span class="r-label">${anyOver ? 'Melebihi DM!' : 'Aman'}</span>
+        <div class="r-value">${fmt(Math.max(pctSekali, pctSehari))}<span class="r-unit">%</span></div>
+      </div>
+      <div class="steps">
+        <div class="dm-row${overSekali ? ' over' : ''}"><span>% DM sekali pakai</span><span class="dm-pct">${fmt(pctSekali)}%</span></div>
+        <div class="dm-row${overSehari ? ' over' : ''}"><span>% DM sehari (${fmt(dosisSehari)} mg)</span><span class="dm-pct">${fmt(pctSehari)}%</span></div>
+      </div>
+      ${anyOver ? '<p class="hint" style="margin-top:10px;color:var(--warn);">Dosis ini melebihi Dosis Maksimum — jangan diberikan, konsultasikan ke dokter/apoteker penanggung jawab dulu.</p>' : ''}
+    `;
+  }
+
+  [dmSekaliEl, dmSehariEl, dosisSekaliEl, frekuensiEl].forEach(el => el.addEventListener('input', () => { renderDm(); saveState(); }));
+  renderDm();
+
+  // ============ KADAR PERSEN SEDIAAN (b/b, b/v, v/v) ============
+  const kadarSegEl = $('kadarSeg'), kadarPersenEl = $('kadarPersen'), kadarTotalEl = $('kadarTotal');
+  const kadarTotalLabelEl = $('kadarTotalLabel'), kadarResultEl = $('kadarResult'), errKadarEl = $('errKadar');
+  let kadarType = 'bb';
+
+  const KADAR_META = {
+    bb: { unit: 'g', outUnit: 'gram', desc: 'b/b = gram zat aktif per gram sediaan × 100%. Dipakai buat salep/krim/serbuk.' },
+    bv: { unit: 'ml', outUnit: 'gram', desc: 'b/v = gram zat aktif per ml sediaan × 100%. Dipakai buat larutan/sirup dari zat padat.' },
+    vv: { unit: 'ml', outUnit: 'ml', desc: 'v/v = ml zat cair per ml sediaan × 100%. Dipakai buat campuran cairan-cairan.' }
+  };
+
+  function updateKadarLabel(){
+    const meta = KADAR_META[kadarType];
+    kadarTotalLabelEl.innerHTML = `Total sediaan <span class="unit">${meta.unit}</span>`;
+  }
+
+  kadarSegEl.querySelectorAll('.seg-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      kadarSegEl.querySelectorAll('.seg-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      kadarType = btn.dataset.kadar;
+      updateKadarLabel();
+      renderKadar();
+      saveState();
+    });
+  });
+
+  function renderKadar(){
+    const persen = parseFloat(kadarPersenEl.value);
+    const total = parseFloat(kadarTotalEl.value);
+    const meta = KADAR_META[kadarType];
+
+    if (kadarPersenEl.value === '' && kadarTotalEl.value === ''){
+      errKadarEl.hidden = true;
+      kadarResultEl.innerHTML = `<p class="empty-note">${meta.desc}</p>`;
+      return;
+    }
+    if (!Number.isFinite(persen) || !Number.isFinite(total) || persen <= 0 || total <= 0){
+      errKadarEl.textContent = 'Kadar dan total sediaan harus diisi angka lebih dari 0.';
+      errKadarEl.hidden = false;
+      kadarResultEl.innerHTML = '';
+      return;
+    }
+
+    errKadarEl.hidden = true;
+    const zatAktif = (persen * total) / 100;
+
+    kadarResultEl.innerHTML = `
+      <div class="readout">
+        <span class="r-label">Zat aktif dibutuhkan</span>
+        <div class="r-value">${fmt(zatAktif)}<span class="r-unit">${meta.outUnit}</span></div>
+      </div>
+      <div class="steps">
+        <div class="step"><span class="n">1</span><span class="t">(Kadar % × total sediaan) ÷ 100</span><span class="v">${fmt(persen)}% × ${fmt(total)} ${meta.unit}</span></div>
+      </div>
+    `;
+  }
+
+  updateKadarLabel();
+  [kadarPersenEl, kadarTotalEl].forEach(el => el.addEventListener('input', () => { renderKadar(); saveState(); }));
+  renderKadar();
+
+  // ============ PENYIMPANAN LOKAL (localStorage) ============
+  const STORAGE_KEY = 'kalkulatorObatState_v1';
+
+  function saveState(){
+    try {
+      const data = {
+        jumlah: jumlahEl.value,
+        batas: batasEl.value,
+        target: targetEl.value,
+        pengisi: pengisiEl.value,
+        obatState,
+        historyState,
+        convCat: currentCat,
+        convVal: convValEl.value,
+        convUnit: convUnitEl.value,
+        c1: c1El.value, c2: c2El.value, v2: v2El.value,
+        pedRule, pedDosis: pedDosisEl.value, pedVal: pedValEl.value,
+        mgkg: mgkgEl.value, bbPasien: bbPasienEl.value,
+        dmSekali: dmSekaliEl.value, dmSehari: dmSehariEl.value, dosisSekali: dosisSekaliEl.value, frekuensi: frekuensiEl.value,
+        kadarType, kadarPersen: kadarPersenEl.value, kadarTotal: kadarTotalEl.value
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    } catch (e){
+      // localStorage gak tersedia (mode privat / dibatasi browser) — lewati diam-diam
+    }
+  }
+
+  function loadState(){
+    let data;
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      data = JSON.parse(raw);
+    } catch (e){ return; }
+    if (!data) return;
+
+    if (data.jumlah !== undefined) jumlahEl.value = data.jumlah;
+    if (data.batas !== undefined) batasEl.value = data.batas;
+    if (data.target !== undefined) targetEl.value = data.target;
+    if (data.pengisi !== undefined) pengisiEl.value = data.pengisi;
+    if (Array.isArray(data.obatState) && data.obatState.length){
+      obatState = data.obatState.map(o => ({ satuan: 'mg', ...o }));
+      nextObatId = Math.max(...obatState.map(o => o.id)) + 1;
+    }
+    if (Array.isArray(data.historyState)) historyState = data.historyState;
+
+    renderObatList();
+    computeAndRender();
+    renderHistory();
+
+    if (data.convCat && UNIT_SETS[data.convCat]){
+      currentCat = data.convCat;
+      unitSegEl.querySelectorAll('.seg-btn').forEach(b => b.classList.toggle('active', b.dataset.cat === currentCat));
+      buildUnitUI(currentCat);
+    }
+    if (data.convVal !== undefined) convValEl.value = data.convVal;
+    if (data.convUnit) convUnitEl.value = data.convUnit;
+    renderStair();
+
+    if (data.c1 !== undefined) c1El.value = data.c1;
+    if (data.c2 !== undefined) c2El.value = data.c2;
+    if (data.v2 !== undefined) v2El.value = data.v2;
+    renderLarutan();
+
+    if (data.pedRule && PED_META[data.pedRule]){
+      pedRule = data.pedRule;
+      pedSegEl.querySelectorAll('.seg-btn').forEach(b => b.classList.toggle('active', b.dataset.rule === pedRule));
+      updatePedLabel();
+    }
+    if (data.pedDosis !== undefined) pedDosisEl.value = data.pedDosis;
+    if (data.pedVal !== undefined) pedValEl.value = data.pedVal;
+    renderPed();
+
+    if (data.mgkg !== undefined) mgkgEl.value = data.mgkg;
+    if (data.bbPasien !== undefined) bbPasienEl.value = data.bbPasien;
+    renderMgkg();
+
+    if (data.dmSekali !== undefined) dmSekaliEl.value = data.dmSekali;
+    if (data.dmSehari !== undefined) dmSehariEl.value = data.dmSehari;
+    if (data.dosisSekali !== undefined) dosisSekaliEl.value = data.dosisSekali;
+    if (data.frekuensi !== undefined) frekuensiEl.value = data.frekuensi;
+    renderDm();
+
+    if (data.kadarType && KADAR_META[data.kadarType]){
+      kadarType = data.kadarType;
+      kadarSegEl.querySelectorAll('.seg-btn').forEach(b => b.classList.toggle('active', b.dataset.kadar === kadarType));
+      updateKadarLabel();
+    }
+    if (data.kadarPersen !== undefined) kadarPersenEl.value = data.kadarPersen;
+    if (data.kadarTotal !== undefined) kadarTotalEl.value = data.kadarTotal;
+    renderKadar();
+  }
+
+  loadState();
+</script>
+
+</body>
+</html>
