@@ -1,0 +1,19 @@
+{
+  "name": "Neraca — Kalkulator Penimbangan Obat",
+  "short_name": "Neraca",
+  "description": "Kalkulator penimbangan obat, pengenceran, dosis anak, dan konversi satuan farmasi.",
+  "start_url": "./kalkulator-penimbangan-obat.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0E1512",
+  "theme_color": "#0E1512",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
